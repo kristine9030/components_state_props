@@ -1,98 +1,103 @@
-import { Image } from 'expo-image';
-import { Platform, StyleSheet } from 'react-native';
+import { useEffect, useRef, useState } from 'react';
+import { Image, View, StyleSheet, ScrollView } from 'react-native';
+import { Audio } from 'expo-av';
 
-import { HelloWave } from '@/components/hello-wave';
-import ParallaxScrollView from '@/components/parallax-scroll-view';
-import { ThemedText } from '@/components/themed-text';
-import { ThemedView } from '@/components/themed-view';
-import { Link } from 'expo-router';
+import Header from '@/components/dino/Header';
+import FriendJar from '@/components/dino/FriendJar';
+import ActionButtons from '@/components/dino/ActionButtons';
+import { cleanupSounds } from '@/components/dino/SoundManager';
 
 export default function HomeScreen() {
-  return (
-    <ParallaxScrollView
-      headerBackgroundColor={{ light: '#A1CEDC', dark: '#1D3D47' }}
-      headerImage={
-        <Image
-          source={require('@/assets/images/partial-react-logo.png')}
-          style={styles.reactLogo}
-        />
-      }>
-      <ThemedView style={styles.titleContainer}>
-        <ThemedText type="title">Welcome!</ThemedText>
-        <HelloWave />
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 1: Try it</ThemedText>
-        <ThemedText>
-          Edit <ThemedText type="defaultSemiBold">app/(tabs)/index.tsx</ThemedText> to see changes.
-          Press{' '}
-          <ThemedText type="defaultSemiBold">
-            {Platform.select({
-              ios: 'cmd + d',
-              android: 'cmd + m',
-              web: 'F12',
-            })}
-          </ThemedText>{' '}
-          to open developer tools.
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <Link href="/modal">
-          <Link.Trigger>
-            <ThemedText type="subtitle">Step 2: Explore</ThemedText>
-          </Link.Trigger>
-          <Link.Preview />
-          <Link.Menu>
-            <Link.MenuAction title="Action" icon="cube" onPress={() => alert('Action pressed')} />
-            <Link.MenuAction
-              title="Share"
-              icon="square.and.arrow.up"
-              onPress={() => alert('Share pressed')}
-            />
-            <Link.Menu title="More" icon="ellipsis">
-              <Link.MenuAction
-                title="Delete"
-                icon="trash"
-                destructive
-                onPress={() => alert('Delete pressed')}
-              />
-            </Link.Menu>
-          </Link.Menu>
-        </Link>
+  const [count, setCount] = useState(0);
+  const friendIds = useRef<number[]>([]);
 
-        <ThemedText>
-          {`Tap the Explore tab to learn more about what's included in this starter app.`}
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 3: Get a fresh start</ThemedText>
-        <ThemedText>
-          {`When you're ready, run `}
-          <ThemedText type="defaultSemiBold">npm run reset-project</ThemedText> to get a fresh{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> directory. This will move the current{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> to{' '}
-          <ThemedText type="defaultSemiBold">app-example</ThemedText>.
-        </ThemedText>
-      </ThemedView>
-    </ParallaxScrollView>
+  const getFriends = () => friendIds.current;
+
+  useEffect(() => {
+    Audio.setAudioModeAsync({ playsInSilentModeIOS: true }).catch(() => {});
+    return () => { cleanupSounds(); };
+  }, []);
+
+  const handleCollect = () => {
+    setCount((prev) => prev + 1);
+    friendIds.current = [...friendIds.current, Math.floor(Math.random() * 8) + 1];
+  };
+
+  const handleRelease = () => {
+    setCount((prev) => prev - 1);
+    if (friendIds.current.length > 0) {
+      friendIds.current = friendIds.current.slice(0, -1);
+    }
+  };
+
+  const handleReset = () => {
+    setCount(0);
+    friendIds.current = [];
+  };
+
+  return (
+    <View style={styles.root}>
+      <Image
+        source={require('@/assets/images/bg.png')}
+        style={styles.bgImage}
+      />
+      <View style={styles.wrapper}>
+        <ScrollView contentContainerStyle={styles.scrollContent}>
+          <View style={styles.container}>
+            <Header friendCount={count} />
+            <View style={styles.jarSection}>
+              <FriendJar count={count} friends={getFriends()} />
+            </View>
+            <ActionButtons
+              onCollect={handleCollect}
+              onRelease={handleRelease}
+              onReset={handleReset}
+            />
+          </View>
+        </ScrollView>
+      </View>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  titleContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
+  root: {
+    flex: 1,
   },
-  stepContainer: {
-    gap: 8,
-    marginBottom: 8,
+  wrapper: {
+    flex: 1,
+    marginHorizontal: 12,
+    marginBottom: 40,
+    marginTop: 40,
+    borderWidth: 4,
+    borderColor: '#1ABC9C',
+    borderRadius: 20,
+    overflow: 'hidden',
+    shadowColor: '#1ABC9C',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.6,
+    shadowRadius: 12,
+    elevation: 8,
   },
-  reactLogo: {
-    height: 178,
-    width: 290,
-    bottom: 0,
-    left: 0,
+  bgImage: {
     position: 'absolute',
+    width: '100%',
+    height: '100%',
+    opacity: 0.2,
+  },
+  scrollContent: {
+    flexGrow: 1,
+  },
+  container: {
+    flex: 1,
+    paddingHorizontal: 24,
+    paddingTop: 20,
+    paddingBottom: 20,
+  },
+  jarSection: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginTop: 20,
   },
 });
